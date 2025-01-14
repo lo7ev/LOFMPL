@@ -4,7 +4,7 @@ bsub -I 'python3 ./top.py \
 -partition_py ./partition.py \
 -gen_top_py ./gen_top.py \
 -merge_py ./merge.py \
--rl_yqian_P_opt_py ./rl_yqian_P_opt.py \
+-rl_P_opt_py ./rl_P_opt.py \
 -benchs_info_file ./benchinfo/bench_info.yaml \
 -yosys_exe ../yosys/yosys \
 -abc_exe ../abc_p/abc \
