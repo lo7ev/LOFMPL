@@ -4,19 +4,17 @@ As circuit complexity increases, traditional reinforcement learning (RL) approac
 
 **LOFMPL** addresses these challenges by introducing an innovative logic optimization framework that combines Maximum Fanout-Free Cone (MFFC)-based Hypergraph partitioning with reinforcement learning. HyPaR leverages Yosys for Verilog parsing and combinational logic extraction.
 
-The core of HyPaR is a novel two-stage MFFC-based hypergraph partitioning technique. This technique partitions the circuit into highly independent, fine-grained, and similarly sized subnetworks, enabling efficient exploration by a parallel RL-based design space exploration engine implemented using C++ APIs. This approach reduces runtime while enhancing the quality of logic optimization.
+The core of LOFMPL is a novel two-stage MFFC-based hypergraph partitioning technique. This technique partitions the circuit into highly independent subnetworks, enabling efficient exploration by a parallel RL-based design space exploration engine implemented using C++ APIs. This approach reduces runtime while enhancing the quality of logic optimization.
 
 ### Key Features
 - **Enhanced Optimization**: Achieves superior optimization results within the same runtime constraints compared to state-of-the-art methods.
-- **Broad Benchmarking**: Validated against more than 150 benchmarks, including both FPGA and ASIC evaluations, with comparisons to BOiLS and DRiLLS.
+- **Broad Benchmarking**: Validated against more than 150 benchmarks with comparisons to other ML-based and greedy methods.
 - **Significant Improvements**:
-  - **Node-Level-Product**: Average improvement of 14% and 7% on the largest 10 benchmarks.
-  - **FPGA Technology Mapping**: Average LUT-Level-Product improvement of over 9%.
-  - **ASIC Technology Mapping**: Average Area-Delay-Product (ADP) improvement of 9% and 5%.
-  - **Comprehensive Benchmarking**: Across all 150+ benchmarks, HyPaR demonstrates average improvements of 9%, 6%, and 7% compared to ABC 'resyn2', BOiLS, and DRiLLS respectively.
-  - **Advanced ABC9 Integration**: HyPaR combined with ABC9 shows a 15% ADP improvement over ABC 'resyn2' and a 10% improvement over ABC-based approaches.
-
-HyPaR is an open-source project designed to advance the field of logic optimization, offering a robust, scalable solution for large-scale circuit design challenges.
+  - **Logic Optimization Task**: Average node-level-product improvement of 13\% over RLG, 3\% over ESE, 14\% over Boils, and 7\% over DRiLLS.
+  - **ASIC Technology Mapping Task**: Average Area-Delay-Product (ADP) improvement of 23\% over LSOracle, 9\% over Boils, and 5\% over DRiLLS.
+  - **Comprehensive Benchmarking**: Across all 150+ benchmarks, LOFMPL demonstrates average improvements of 9%, 6%, and 7% compared to ABC 'resyn2', BOiLS, and DRiLLS respectively.
+  
+LOFMPL is an open-source project designed to advance the field of logic optimization, offering a robust, scalable solution for large-scale circuit design challenges.
 
 ## Build
 
