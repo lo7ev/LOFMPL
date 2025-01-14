@@ -2,14 +2,15 @@
 
 As circuit complexity increases, traditional reinforcement learning (RL) approaches face significant challenges in effectively exploring logic optimization sequences within large-scale Boolean networks. These methods often suffer from long runtime overhead and suboptimal optimization results. 
 
-**LOFMPL** addresses these challenges by introducing an innovative logic optimization framework that combines Maximum Fanout-Free Cone (MFFC)-based Hypergraph partitioning with reinforcement learning. HyPaR leverages Yosys for Verilog parsing and combinational logic extraction.
+**LOFMPL** addresses these challenges by introducing an innovative logic optimization framework that combines Maximum Fanout-Free Cone (MFFC)-based Hypergraph partitioning with reinforcement learning. LOFMPL leverages Yosys for Verilog parsing and combinational logic extraction.
 
 The core of LOFMPL is a novel two-stage MFFC-based hypergraph partitioning technique. This technique partitions the circuit into highly independent subnetworks, enabling efficient exploration by a parallel RL-based design space exploration engine implemented using C++ APIs. This approach reduces runtime while enhancing the quality of logic optimization.
 
 ### Key Features
 - **Enhanced Optimization**: Achieves superior optimization results within the same runtime constraints compared to state-of-the-art methods.
-- **Broad Benchmarking**: Validated against more than 150 benchmarks with comparisons to other ML-based and greedy methods.
+- **Broad Benchmarking**: Validated against more than 150 benchmarks compared to other ML-based and greedy methods.
 - **Significant Improvements**:
+  - **Partition Efficiency**:  Outperform KaHypar and MFFCKaHypar by 33% and 28% on node-level-product without significant runtime overhead. 
   - **Logic Optimization Task**: Average node-level-product improvement of 13\% over RLG, 3\% over ESE, 14\% over Boils, and 7\% over DRiLLS.
   - **ASIC Technology Mapping Task**: Average Area-Delay-Product (ADP) improvement of 23\% over LSOracle, 9\% over Boils, and 5\% over DRiLLS.
   - **Comprehensive Benchmarking**: Across all 150+ benchmarks, LOFMPL demonstrates average improvements of 9%, 6%, and 7% compared to ABC 'resyn2', BOiLS, and DRiLLS respectively.
@@ -74,7 +75,7 @@ This step divides the input circuit using tools such as ABC and LSOracle.
 ---
 
 Experiment Results For All 150+ benchmarks on ASIC Technology Mapping
-|                    Benchmarks                   |           |    ABC    |             |           |  LSOracle |             |           |   BoiLs   |            |           |   DriLLs  |            |           |   HyPaR   |            |
+|                    Benchmarks                   |           |    ABC    |             |           |  LSOracle |             |           |   BoiLs   |            |           |   DriLLs  |            |           |   LOFMPL   |            |
 |:-----------------------------------------------:|:---------:|:---------:|:-----------:|:---------:|:---------:|:-----------:|:---------:|:---------:|:----------:|:---------:|:---------:|:----------:|:---------:|:---------:|:----------:|
 |                                                 | Area(um2) | Delay(ps) |     ADP     | Area(um2) | Delay(ps) |     ADP     | Area(um2) | Delay(ps) |     ADP    | Area(um2) | Delay(ps) |     ADP    | Area(um2) | Delay(ps) |     ADP    |
 |                   /vtr/arm_core                 |  156318.2 |  1034.19  | 161662747.9 |  151004.5 |  1056.51  | 159537767.5 |  152004.9 |  1041.54  |  158319148 |  161500.8 |  1031.03  |  166512130 |  146799.1 |  1022.63  |  150121140 |
