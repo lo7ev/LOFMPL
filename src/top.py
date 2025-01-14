@@ -26,13 +26,13 @@ def prepare_part(partition_py, bench_info, yosys_exe, abc_exe, abc_p_exe, lsorac
         cmd = 'python3 ' + partition_py + ' -work_dir ' +  abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top'] + ' -yosys_exe ' + yosys_exe + ' -abc_exe ' + abc_exe + ' -abc_p_exe ' + abc_p_exe + ' -lsoracle_exe ' + lsoracle_exe + ' -part_size ' + str(part_size)
         subprocess.run(['bsub', '-R', 'rusage[mem=200000]', cmd])
 
-def prepare_merge(merge_py, bench_info, yosys_exe, abc_exe, abc_netlist_plugin, synopsys_dc_setup_file, gen_top_py, rl_yqian_P_opt_py, outputs_dir_monitor, outputs_dir_noop):
+def prepare_merge(merge_py, bench_info, yosys_exe, abc_exe, abc_netlist_plugin, gen_top_py, rl_yqian_P_opt_py, outputs_dir_monitor, outputs_dir_noop):
     if 'comment' not in bench_info:
         # subprocess.run(['mkdir', '-p', abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top'] + '/' + 'src'])
         # subprocess.run(['mkdir', '-p', abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top'] + '/' + 'scripts'])
         # subprocess.run(['mkdir', '-p', abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top'] + '/' + 'reports'])
         # subprocess.run(['mkdir', '-p', abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top'] + '/' + 'outputs'])
-        subprocess.run(['cp', synopsys_dc_setup_file, abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top']])
+        #subprocess.run(['cp', synopsys_dc_setup_file, abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top']])
         # if 'include_dir' in bench_info:
         #     subprocess.run(['cp', '-r', abspath(expanduser(bench_info['include_dir'])), abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top'] + '/' + 'src'])
         # for file in bench_info['file(s)']:
@@ -119,7 +119,6 @@ def get_args():
     parser.add_argument("-lsoracle_exe", type=str, required=True, help=f"lsoracle executable file")
     parser.add_argument("-part_size", type=int, default=10000, required=False, help=f"partition size, {default}")
     parser.add_argument("-process", type=int, default=1, required=False, help=f"parallel number, {default}")
-    parser.add_argument("-synopsys_dc_setup_file", type=str, required=True, help=f".synopsys_dc.setup file")
     parser.add_argument("-gen_top_py", type=str, required=True, help=f"generate top module python file in lsoracle plugin")
     parser.add_argument("-rl_yqian_P_opt_py", type=str, required=True, help=f"rl_yqian_P_opt.py file")
     parser.add_argument("-outputs_dir_monitor", type=str, required=True, help=f"outputs directory with monitors")
@@ -139,7 +138,7 @@ def get_design_dir(outputs_dir_all_parts, bench_info):
 
 def process_task(partition_py, bench_info, yosys_exe, abc_exe, abc_p_exe, lsoracle_exe, part_size,
             benchs_info_file,rl_logic_synthesis_dir,outputs_dir_all_parts,process,rl_run_time, rl_run_memory,
-            merge_py, abc_netlist_plugin, synopsys_dc_setup_file, gen_top_py, rl_yqian_P_opt_py, outputs_dir_monitor, outputs_dir_noop):
+            merge_py, abc_netlist_plugin, gen_top_py, rl_yqian_P_opt_py, outputs_dir_monitor, outputs_dir_noop):
     if 'comment' not in bench_info:
         subprocess.run(['mkdir', '-p', abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top'] + '/' + 'src'])
         subprocess.run(['mkdir', '-p', abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top'] + '/' + 'scripts'])
@@ -212,14 +211,9 @@ def process_task(partition_py, bench_info, yosys_exe, abc_exe, abc_p_exe, lsorac
         print('All rl_opt subprocesses done.', flush=True)
         print("=======================================================================================")
         print('Waiting for all merge subprocesses done...', flush=True)
-        subprocess.run(['cp', synopsys_dc_setup_file, abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top']])
         cmd = 'python3 ' + merge_py + ' -work_dir ' +  abspath(expanduser(bench_info['out_dir'])) + '/' + bench_info['top'] + ' -yosys_exe ' + yosys_exe + ' -abc_exe ' + abc_exe + ' -abc_netlist_plugin ' + abc_netlist_plugin + ' -gen_top_py ' + gen_top_py + ' -rl_yqian_P_opt_py ' + rl_yqian_P_opt_py + ' -outputs_dir_monitor ' + outputs_dir_monitor + ' -outputs_dir_noop ' + outputs_dir_noop
         subprocess.run(['bsub', '-R', 'rusage[mem=200000]', cmd])
         time.sleep(1)
-        dc_done_file = os.path.join(work_dir + '/reports/', bench_info['top'] + '_timing.rpt')
-        while not os.path.exists(dc_done_file):
-                    print("waiting for dc  ....", flush=True)
-                    time.sleep(5)           
         print('All merge subprocesses done.', flush=True)
        
 
@@ -233,7 +227,6 @@ if __name__ == '__main__':
     lsoracle_exe = abspath(expanduser(args.lsoracle_exe))
     part_size = args.part_size    
     abc_netlist_plugin = abspath(expanduser(args.abc_netlist_plugin))
-    synopsys_dc_setup_file = abspath(expanduser(args.synopsys_dc_setup_file))
     gen_top_py = abspath(expanduser(args.gen_top_py))
     rl_yqian_P_opt_py = abspath(expanduser(args.rl_yqian_P_opt_py))
     outputs_dir_monitor = abspath(expanduser(args.outputs_dir_monitor))
@@ -255,7 +248,7 @@ if __name__ == '__main__':
             func = process_task,
             args=(partition_py, bench_info, yosys_exe, abc_exe, abc_p_exe, lsoracle_exe, part_size,
                   benchs_info_file,rl_logic_synthesis_dir,outputs_dir_all_parts,process,rl_run_time, rl_run_memory,
-            merge_py, abc_netlist_plugin, synopsys_dc_setup_file, gen_top_py, rl_yqian_P_opt_py, outputs_dir_monitor, outputs_dir_noop)
+            merge_py, abc_netlist_plugin, gen_top_py, rl_yqian_P_opt_py, outputs_dir_monitor, outputs_dir_noop)
         )
     pool.close()
     pool.join()
