@@ -57,26 +57,12 @@ LOFMPL uses the `rl_logic_synthesis` tool for reinforcement learning-based optim
 
 Once the build process is complete, follow these steps to perform partitioning, optimization, and evaluation of circuits.
 
-### 1. Partition the Circuit
-To partition the input circuit into subcircuits, use the `run_partition.sh` script:
+
+To perform the optimization, use the `run_top.sh` script:
 ```bash
-./Scripts/run_partition.sh
+./src/run_top.sh
 ```
 This step divides the input circuit using tools such as ABC and LSOracle.
-
-### 2. Perform Parallel Optimization
-After partitioning, use the `run_DSE.sh` script to optimize the subcircuits in parallel:
-```bash
-./Scripts/run_DSE.sh
-```
-This script applies reinforcement learning techniques to optimize the design space for the subcircuits.
-
-### 3. Merge and Evaluate the Optimized Subcircuits
-Once the optimization is complete, use the `run_top.sh` script to merge the optimized subcircuits and evaluate the final design using Synopsys Design Compiler (DC):
-```bash
-./Scripts/run_top.sh
-```
-The final merged design will be evaluated for area, delay, and power metrics using DC.
 
 ---
 
