@@ -17,9 +17,6 @@ def get_args():
 def get_best_seq_reward(monitor_csv_file):
     monitor_df = pd.read_csv(monitor_csv_file, comment='#')
     sorted_df = monitor_df.sort_values(by='r', ascending=False)
-    # print(monitor_df)
-    # print(sorted_df)
-    # print(sorted_df.iloc[0], sorted_df.iloc[5])
     return sorted_df.iloc[0][5], sorted_df.iloc[0][0]
 
 
