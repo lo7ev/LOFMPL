@@ -11,7 +11,7 @@ bsub -I 'python3 ./top.py \
 -abc_p_exe ../abc_p/abc \
 -lsoracle_exe ../LSOracle/build/core/lsoracle \
 -part_size 10000 \
--abc_netlist_plugin /home/wllpro/llwang04/zli/logic_synthesis/partition_n10000_rl_yqian_merge/abc_netlist/abc_netlist.so \
+-abc_netlist_plugin ../abc_netlist/abc_netlist.so \
 -synopsys_dc_setup_file /home/wllpro/llwang04/zli/logic_synthesis/orig_dc/.synopsys_dc.setup \
 -outputs_dir_monitor ../outputs \
 -outputs_dir_noop ../outputs \
