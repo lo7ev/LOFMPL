@@ -17,6 +17,8 @@ The core of LOFMPL is a novel two-stage MFFC-based hypergraph partitioning techn
   
 LOFMPL is an open-source project designed to advance the field of logic optimization, offering a robust, scalable solution for large-scale circuit design challenges.
 
+If you have any questions, please feel free to contact my email for inquiries: kxzhu21@m.fudan.edu.cn
+
 ## Build
 
 To build and configure LOFMPL, follow the steps below:
