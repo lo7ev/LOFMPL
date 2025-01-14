@@ -57,8 +57,8 @@ if __name__ == '__main__':
 
     subprocess.run([yosys_exe, '-Q', '-l', 'yosys.log', '-T', '-m', abc_netlist_plugin, '-p', cmds], check=True, stdout=subprocess.DEVNULL, cwd=work_dir)
 
-    create_script(work_dir + '/' + 'scripts', bench_info, 'compile -map_effort high', 0)
-    subprocess.run(['dc_shell', '-f', 'scripts/top.tcl', '-output_log_file', 'log'], check=True, stdout=subprocess.DEVNULL, cwd=work_dir)
+    #create_script(work_dir + '/' + 'scripts', bench_info, 'compile -map_effort high', 0)
+    #subprocess.run(['dc_shell', '-f', 'scripts/top.tcl', '-output_log_file', 'log'], check=True, stdout=subprocess.DEVNULL, cwd=work_dir)
     
     # opt1_area, opt1_delay, opt1_slack, opt1_power = get_PDA(bench_info['top'], work_dir + '/reports/')
     # create_script(work_dir + '/' + 'scripts', bench_info, 'compile -map_effort high', -opt1_slack)
