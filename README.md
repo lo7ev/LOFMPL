@@ -53,6 +53,13 @@ LOFMPL uses the `rl_logic_synthesis` tool for reinforcement learning-based optim
   ```
 - Follow the build and setup instructions provided in the `README.md` of the `rl_logic_synthesis` repository.
 
+### 4. Build abc_netlist.so
+- Navigate to the `abc_netlist` directory:
+  ```bash
+  cd abc_netlist
+  g++ -shared -o abc_netlist.so abc_netlist.cc
+  ```
+  
 ## Usage
 
 Once the build process is complete, follow these steps to perform partitioning, optimization, and evaluation of circuits.
