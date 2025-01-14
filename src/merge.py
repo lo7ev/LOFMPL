@@ -15,7 +15,7 @@ def get_args():
     # parser.add_argument("-lsoracle_exe", type=str, required=True, help=f"lsoracle executable file")
     # parser.add_argument("-lsoracle_plugin", type=str, required=True, help=f"lsoracle plugin file for yosys")
     parser.add_argument("-gen_top_py", type=str, required=True, help=f"generate top module python file in lsoracle plugin")
-    parser.add_argument("-rl_yqian_P_opt_py", type=str, required=True, help=f"rl_yqian_P_opt.py file")
+    parser.add_argument("-rl_P_opt_py", type=str, required=True, help=f"rl_P_opt.py file")
     parser.add_argument("-outputs_dir_monitor", type=str, required=True, help=f"outputs directory with monitors")
     parser.add_argument("-outputs_dir_noop", type=str, required=True, help=f"outputs directory with noop partitions")
     return parser.parse_args()
@@ -30,14 +30,14 @@ if __name__ == '__main__':
     # lsoracle_exe = abspath(expanduser(args.lsoracle_exe))
     # lsoracle_plugin = abspath(expanduser(args.lsoracle_plugin))
     gen_top_py = abspath(expanduser(args.gen_top_py))
-    rl_yqian_P_opt_py = abspath(expanduser(args.rl_yqian_P_opt_py))
+    rl_P_opt_py = abspath(expanduser(args.rl_P_opt_py))
     outputs_dir_monitor = abspath(expanduser(args.outputs_dir_monitor))
     outputs_dir_noop = abspath(expanduser(args.outputs_dir_noop))
 
     with open(work_dir + '/bench_info.yaml', 'r') as f:
         bench_info = yaml.safe_load(f)
 
-    subprocess.run(['python3', rl_yqian_P_opt_py, '-abc_exe', abc_exe, '-outputs_dir_monitor', outputs_dir_monitor, '-outputs_dir_noop', outputs_dir_noop], cwd=work_dir)
+    subprocess.run(['python3', rl_P_opt_py, '-abc_exe', abc_exe, '-outputs_dir_monitor', outputs_dir_monitor, '-outputs_dir_noop', outputs_dir_noop], cwd=work_dir)
     subprocess.run(['python3', gen_top_py, '-dir', 'src', '-module_name', 'netlist'], cwd=work_dir)
 
     cmds = 'read_verilog src/*.v; hierarchy -top netlist; flatten; techmap; opt -purge; write_verilog -noattr netlist.v'
