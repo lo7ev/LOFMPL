@@ -105,6 +105,163 @@ This step divides the input circuit using tools such as ABC and LSOracle.
 
 ---
 
+## Manual Partition and Reassemble (Noop Pipeline)
+
+Use these steps to partition a design and glue it back without RL optimization.
+This is useful for verifying the partition round-trip or as a starting point before applying RL.
+
+**1. Create a work directory with `bench_info.yaml`**
+```yaml
+file(s):
+  - /abs/path/to/dep.v
+  - /abs/path/to/top.v
+top: your_top_module
+type: sequential   # or combinational
+```
+
+**2. Partition** — yosys flattens the design, `abc_p pif` partitions it, LSOracle further splits large partitions with `--noop_dir`
+```bash
+cd /your/work/dir
+python3 src/partition.py \
+  -work_dir . \
+  -yosys_exe /usr/bin/yosys \
+  -abc_exe   abc_p/abc \
+  -abc_p_exe abc_p/abc \
+  -lsoracle_exe LSOracle_p/build/core/lsoracle \
+  -part_size 400    # tune: smaller = more partitions
+```
+Output: `src/part_N.v`, `src/part_N.ports`, `src/top.inputs`, `src/top.outputs`
+
+**3. Reassemble combinational top**
+```bash
+python3 src/gen_top.py -dir src -module_name netlist
+```
+Output: `src/netlist.v`
+
+**4. Flatten the assembled netlist**
+```bash
+yosys -Q -T -p \
+  'read_verilog src/*.v;
+   hierarchy -top netlist;
+   flatten; techmap; opt -purge;
+   write_verilog -noattr netlist.v'
+```
+Output: `netlist.v` (flat, in work dir)
+
+**5. Re-insert registers — get final sequential output**
+
+This step reads the original RTL (with DFFs), verifies equivalence via ABC CEC, and substitutes the optimized combinational core, producing a sequential `output.v`.
+```bash
+yosys -Q -T \
+  -m abc_netlist/abc_netlist.so \
+  -p 'read_verilog -nolatches /abs/path/dep.v;
+      read_verilog -nolatches /abs/path/top.v;
+      hierarchy -check -top your_top_module;
+      flatten; proc; opt -purge; memory; opt -purge;
+      fsm; opt -purge; techmap; opt -purge;
+      abc_netlist -netlist netlist.v -script "+cec netlist.v; quit";
+      opt -purge; write_verilog -noattr src/output.v'
+```
+Output: `src/output.v` — sequential, same interface as original RTL
+
+> **Note:** The `--noop_dir` partitions are intentionally combinational — they represent the logic between pipeline registers.
+> Register re-insertion happens in step 5 via the `abc_netlist` yosys plugin.
+> For sequential designs, CEC verifies equivalence of the combinational abstraction (DFFs exposed as PI/PO).
+> A noop round-trip produces a bit-exact equivalent of the original.
+
+---
+
+## Automated RL Optimization Pipeline
+
+After partitioning (steps 1–2 above), use a `run_rl.py` script to train PPO on each partition and automatically reassemble the sequential output. A minimal working example for a design in `my_design/`:
+
+```python
+import os, subprocess, yaml, shutil, re, time, csv
+from pathlib import Path
+import multiprocessing as mp
+
+WORK      = Path(__file__).parent
+SRC       = WORK / 'src'
+RL_DIR    = Path('/path/to/LOFMPL/rl_logic_synthesis')
+ABC       = '/path/to/LOFMPL/abc_p/abc'
+YOSYS     = '/usr/bin/yosys'
+ABC_NL    = '/path/to/LOFMPL/abc_netlist/abc_netlist.so'
+GEN_TOP   = '/path/to/LOFMPL/src/gen_top.py'
+TRAIN     = RL_DIR / 'rl-baselines3-zoo/train.py'
+RTL_FILES = ['/abs/path/dep.v', '/abs/path/top.v']   # original RTL sources
+TOP       = 'your_top_module'
+N_STEPS   = 5000
+N_WORKERS = 4   # cap parallel training jobs to avoid overloading the machine
+
+ACTIONS = [
+    'rewrite','rewrite -z','rewrite -l','rewrite -z -l',
+    'refactor','refactor -z','refactor -l','refactor -z -l',
+    'resub','resub -z','resub -l','resub -z -l',
+    'balance','fraig','&get -n; &dsdb; &put','dc2',
+]
+BASELINE = 'balance; rewrite; refactor; balance; rewrite; rewrite -z; balance; refactor -z; rewrite -z; balance'
+```
+
+**Key workflow steps implemented in the script:**
+
+1. **Train** — for each partition `src/part_N.v`, create a YAML config and launch PPO training. Skip partitions with fewer than 5 nodes (trivial) or an existing monitor CSV (already trained).
+   ```python
+   def train_one(part_v):
+       name = Path(part_v).stem
+       monitor = WORK/'rl_work'/name/'ppo'/'abc-exe-opt-v0_1'/'0.monitor.csv'
+       if monitor.exists(): return  # resume-safe: skip already-trained
+       cfg = {'abc_exe': ABC, 'init_bench': str(part_v), 'actions': ACTIONS,
+              'optimize': 'area', 'baseline': BASELINE, ...}
+       # write cfg to yml, then:
+       subprocess.run(['micromamba','run','-n','rl_zoo3','python', str(TRAIN),
+           '--env','abc-exe-opt-v0','--gym-packages','gym_eda',
+           '--algo','ppo','--log-folder', str(run_dir),
+           '-n', str(N_STEPS),
+           '--env-kwargs', f'options_yaml_file:"{yml}"'],
+           env={**os.environ, 'PYTHONPATH': str(RL_DIR)})
+   
+   with mp.Pool(N_WORKERS) as pool:
+       pool.map(train_one, parts)
+   ```
+
+2. **Apply best sequences** — read each monitor CSV (stdlib `csv`, no pandas needed), pick the episode with highest reward, re-run that ABC sequence on the original partition.
+   ```python
+   rows = list(csv.DictReader([l for l in open(monitor) if not l.startswith('#')]))
+   best = max(rows, key=lambda x: float(x['r']))
+   seq  = list(best.values())[5]   # column index 5 = optimization sequence
+   subprocess.run([ABC, '-q', f'read_verilog {part_v}; strash; {seq}; write_verilog {out_v}'])
+   ```
+
+3. **Reassemble** — generate top wrapper, flatten to a single combinational netlist, run `abc_netlist` to CEC-verify and re-insert the original pipeline registers.
+   ```bash
+   python3 src/gen_top.py -dir src_opt -module_name netlist
+   yosys -p "read_verilog src_opt/p0.v ... src_opt/netlist.v; \
+             hierarchy -top netlist; flatten; techmap; opt -purge; \
+             write_verilog -noattr netlist_rl.v"
+   yosys -m abc_netlist/abc_netlist.so -p \
+     "read_verilog -nolatches dep.v top.v; \
+      hierarchy -check -top $TOP; flatten; proc; opt -purge; memory; \
+      opt -purge; fsm; opt -purge; techmap; opt -purge; \
+      abc_netlist -netlist netlist_rl.v -script '+cec netlist_rl.v; quit'; \
+      opt -purge; write_verilog -noattr src_opt/output.v"
+   ```
+   Output: `src_opt/output.v` — sequential, CEC-verified, same interface as original RTL.
+
+4. **Verify** — compile with original RTL and compare outputs.
+
+**Important notes:**
+- `N_WORKERS = 4` is a safe default; each training job spawns multiple ABC subprocesses. Using `mp.Pool(len(parts))` will flood the machine.
+- Use stdlib `csv` (not pandas) to read monitor CSVs — pandas is typically not in system Python.
+- The flat `netlist_rl.v` (before `abc_netlist`) is what to pass to abc `strash` for AND-node counting; `output.v` is sequential and will report 0 combinational nodes.
+- The `rl_work/` directory is resume-safe: re-running the script skips partitions whose `0.monitor.csv` already exists.
+- Run the testbench with `cwd` set to the work directory so `$readmemh` bare filenames resolve.
+
+**Observed results on ifft8 (8-point IFFT, 24 partitions, 5000 steps):**
+- AND-node reduction: 45.7% (11,098 → 6,005 nodes)
+- NMSE vs original RTL: −∞ dB (bit-exact)
+
+---
+
 Experiment Results For All 150+ benchmarks on ASIC Technology Mapping
 |                    Benchmarks                   |           |    ABC    |             |           |  LSOracle |             |           |   BoiLs   |            |           |   DriLLs  |            |           |   LOFMPL   |            |
 |:-----------------------------------------------:|:---------:|:---------:|:-----------:|:---------:|:---------:|:-----------:|:---------:|:---------:|:----------:|:---------:|:---------:|:----------:|:---------:|:---------:|:----------:|
