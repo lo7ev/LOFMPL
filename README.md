@@ -1,5 +1,34 @@
 # LOFMPL: An Open-Source Logic Optimization Framework with Maximum Fanout-Free Cone (MFFC)-based Hypergraph partitioning and Reinforcement Learning
 
+## Prerequisites
+
+**System packages** (Ubuntu 22.04 / Debian / Arch):
+```
+g++  cmake  make  git  python3  yosys
+```
+Install on Ubuntu/Debian: `sudo apt install g++ cmake make git python3 yosys`
+
+**Micromamba** (conda-compatible package manager, required for the RL Python environment):
+```bash
+"${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+```
+
+## Quick Build
+
+```bash
+git clone --recursive https://github.com/YOUR_USERNAME/LOFMPL.git
+cd LOFMPL
+make all        # builds abc_p, LSOracle_p, abc_netlist.so, abc_py
+```
+
+Individual targets: `make abc`, `make lsoracle`, `make abc_netlist`, `make abc_py`
+
+For Python RL environment setup and pipeline usage, see **[SETUP.md](SETUP.md)**.
+
+---
+
+
+
 As circuit complexity increases, traditional reinforcement learning (RL) approaches face significant challenges in effectively exploring logic optimization sequences within large-scale Boolean networks. These methods often suffer from long runtime overhead and suboptimal optimization results. 
 
 **LOFMPL** addresses these challenges by introducing an innovative logic optimization framework that combines Maximum Fanout-Free Cone (MFFC)-based Hypergraph partitioning with reinforcement learning. LOFMPL leverages Yosys for Verilog parsing and combinational logic extraction.

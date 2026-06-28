@@ -540,7 +540,7 @@ void handle_loops()
 					log("Breaking loop using new signal %s: %s -> %s\n", log_signal(RTLIL::SigSpec(wire)),
 							log_signal(signal_list[id1].bit), log_signal(signal_list[id2].bit));
 				else
-					log("                               %*s  %s -> %s\n", int(strlen(log_signal(RTLIL::SigSpec(wire)))), "",
+					log("                               %*s  %s -> %s\n", int(std::string(log_signal(RTLIL::SigSpec(wire))).size()), "",
 							log_signal(signal_list[id1].bit), log_signal(signal_list[id2].bit));
 				first_line = false;
 			}

@@ -1,0 +1,4 @@
+- file(s): [../../ifft_verilog/src/ifft32.v, ../../ifft_verilog/src/ifft16.v, ../../ifft_verilog/src/ifft8.v, ../../ifft_verilog/src/ifft4.v, ../../ifft_verilog/src/ifft2.v, ../../ifft_verilog/src/complex_mul.v, ../../ifft_verilog/src/complex_add.v, ../../ifft_verilog/src/rshift_sat.v]
+  top: ifft32
+  out_dir: ./outputs/ifft
+  type: combinational
