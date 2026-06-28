@@ -173,9 +173,18 @@ cp utils/exp_manager.py rl-baselines3-zoo/utils/exp_manager.py
 ```bash
 mkdir -p ~/.pip_tmp
 
-# Install CPU-only PyTorch first (avoids filling /tmp with CUDA packages)
+# Install PyTorch — pick the right variant:
+#   CPU-only (laptop / no GPU, avoids filling /tmp with large CUDA packages):
 TMPDIR=~/.pip_tmp micromamba run -n rl_zoo3 pip install \
   torch --index-url https://download.pytorch.org/whl/cpu
+#
+#   GPU (check your CUDA version first with `nvidia-smi`, then use matching URL):
+#   CUDA 12.1:  --index-url https://download.pytorch.org/whl/cu121
+#   CUDA 12.4:  --index-url https://download.pytorch.org/whl/cu124
+#   CUDA 12.6:  --index-url https://download.pytorch.org/whl/cu126
+#
+#   Note: RL training here is CPU-bound (each step = ABC subprocess).
+#   GPU PyTorch is harmless but won't meaningfully speed up training.
 
 # gym 0.21.0 has an invalid version specifier in setup.py — patch and install from source
 cd ~/.pip_tmp
