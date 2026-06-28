@@ -1,0 +1,8 @@
+# bench_info.yaml — place this in your work directory before running partition.py
+# Paths must be absolute.
+
+file(s):
+  - /abs/path/to/submodule.v
+  - /abs/path/to/top.v
+top: your_top_module_name
+type: sequential          # sequential or combinational

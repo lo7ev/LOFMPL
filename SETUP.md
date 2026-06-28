@@ -379,13 +379,15 @@ Verilog RTL
     │  abc_p pif: partition AIG into network_*.v (combinational slices)
     │  LSOracle oracle: re-partition any oversized parts
     │
-    ▼  [optional] RL optimization (top.py / rl-baselines3-zoo)
-    │  PPO trains on each partition, finds best rewrite sequence
+    ▼  RL optimization — two options:
     │
-    ▼  merge.py
-    │  rl_P_opt.py: applies best RL sequences via ABC (or copies noop if no RL)
-    │  gen_top.py: builds flat netlist.v wrapper over all partitions
-    │  Yosys abc_netlist plugin: CEC vs original RTL, tech-map → output.v
+    │  Option A (simple): src/rl_opt.py --input partitions/ --output optimized/
+    │    trains PPO per partition, writes optimized .v files; you do the rest
+    │
+    │  Option B (full pipeline): top.py / rl-baselines3-zoo + merge.py
+    │    rl_P_opt.py: applies best sequences via ABC
+    │    gen_top.py: builds flat netlist.v wrapper over all partitions
+    │    Yosys abc_netlist plugin: CEC vs original RTL, tech-map → output.v
     │
     ▼  output.v  (sequential design with registers restored, tech-mapped)
 ```
@@ -394,7 +396,32 @@ Verilog RTL
 
 ---
 
-### Benchmark YAML
+### Quick start — partition only
+
+If you have your own simulator and metrics and just want the partitions + RL-optimized partitions:
+
+```bash
+# 1. Create a work directory with bench_info.yaml (see examples/bench_info_template.yaml)
+cp examples/bench_info_template.yaml my_design/bench_info.yaml
+# edit paths and top module name
+
+# 2. Partition
+python3 src/partition.py -work_dir my_design/ -yosys_exe /usr/bin/yosys \
+  -abc_exe abc_p/abc -abc_p_exe abc_p/abc \
+  -lsoracle_exe LSOracle_p/build/core/lsoracle -part_size 400
+# output: my_design/src/network_*.v
+
+# 3. RL optimization
+python3 src/rl_opt.py --input my_design/src/ --output my_design/src_opt/ \
+  --steps 5000 --workers 4
+# output: my_design/src_opt/network_*.v  (one optimized .v per partition)
+```
+
+From here, run your own simulation and compare metrics between `src/` and `src_opt/`.
+
+---
+
+### Benchmark YAML (for full top.py pipeline)
 
 Create `benchs_info/my_bench.yaml`:
 

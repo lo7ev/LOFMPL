@@ -171,90 +171,50 @@ Output: `src/output.v` — sequential, same interface as original RTL
 
 ---
 
-## Automated RL Optimization Pipeline
+## RL Optimization — `src/rl_opt.py`
 
-After partitioning (steps 1–2 above), use a `run_rl.py` script to train PPO on each partition and automatically reassemble the sequential output. A minimal working example for a design in `my_design/`:
+`rl_opt.py` is the main tool for RL-based optimization. It takes a folder of partition `.v` files, trains PPO on each, and writes optimized `.v` files to an output folder. Simulation, verification, and metrics are left to you.
 
-```python
-import os, subprocess, yaml, shutil, re, time, csv
-from pathlib import Path
-import multiprocessing as mp
-
-WORK      = Path(__file__).parent
-SRC       = WORK / 'src'
-RL_DIR    = Path('/path/to/LOFMPL/rl_logic_synthesis')
-ABC       = '/path/to/LOFMPL/abc_p/abc'
-YOSYS     = '/usr/bin/yosys'
-ABC_NL    = '/path/to/LOFMPL/abc_netlist/abc_netlist.so'
-GEN_TOP   = '/path/to/LOFMPL/src/gen_top.py'
-TRAIN     = RL_DIR / 'rl-baselines3-zoo/train.py'
-RTL_FILES = ['/abs/path/dep.v', '/abs/path/top.v']   # original RTL sources
-TOP       = 'your_top_module'
-N_STEPS   = 5000
-N_WORKERS = 4   # cap parallel training jobs to avoid overloading the machine
-
-ACTIONS = [
-    'rewrite','rewrite -z','rewrite -l','rewrite -z -l',
-    'refactor','refactor -z','refactor -l','refactor -z -l',
-    'resub','resub -z','resub -l','resub -z -l',
-    'balance','fraig','&get -n; &dsdb; &put','dc2',
-]
-BASELINE = 'balance; rewrite; refactor; balance; rewrite; rewrite -z; balance; refactor -z; rewrite -z; balance'
+```bash
+python3 src/rl_opt.py \
+  --input   path/to/partitions/ \
+  --output  path/to/optimized/ \
+  --steps   5000 \
+  --workers 4
 ```
 
-**Key workflow steps implemented in the script:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--input`     | required | folder with input partition `.v` files |
+| `--output`    | required | folder for optimized `.v` files (created if missing) |
+| `--steps`     | 5000 | PPO training steps per partition |
+| `--workers`   | 4 | parallel training jobs (each spawns ABC subprocesses — don't set too high) |
+| `--min-nodes` | 5 | skip partitions smaller than N AND-nodes (trivial) |
+| `--work-dir`  | `<output>/.rl_work` | where PPO logs and monitor CSVs are stored |
 
-1. **Train** — for each partition `src/part_N.v`, create a YAML config and launch PPO training. Skip partitions with fewer than 5 nodes (trivial) or an existing monitor CSV (already trained).
-   ```python
-   def train_one(part_v):
-       name = Path(part_v).stem
-       monitor = WORK/'rl_work'/name/'ppo'/'abc-exe-opt-v0_1'/'0.monitor.csv'
-       if monitor.exists(): return  # resume-safe: skip already-trained
-       cfg = {'abc_exe': ABC, 'init_bench': str(part_v), 'actions': ACTIONS,
-              'optimize': 'area', 'baseline': BASELINE, ...}
-       # write cfg to yml, then:
-       subprocess.run(['micromamba','run','-n','rl_zoo3','python', str(TRAIN),
-           '--env','abc-exe-opt-v0','--gym-packages','gym_eda',
-           '--algo','ppo','--log-folder', str(run_dir),
-           '-n', str(N_STEPS),
-           '--env-kwargs', f'options_yaml_file:"{yml}"'],
-           env={**os.environ, 'PYTHONPATH': str(RL_DIR)})
-   
-   with mp.Pool(N_WORKERS) as pool:
-       pool.map(train_one, parts)
-   ```
+**Resume-safe:** re-running the command skips any partition whose `0.monitor.csv` already exists in `--work-dir`. Interrupt and restart freely.
 
-2. **Apply best sequences** — read each monitor CSV (stdlib `csv`, no pandas needed), pick the episode with highest reward, re-run that ABC sequence on the original partition.
-   ```python
-   rows = list(csv.DictReader([l for l in open(monitor) if not l.startswith('#')]))
-   best = max(rows, key=lambda x: float(x['r']))
-   seq  = list(best.values())[5]   # column index 5 = optimization sequence
-   subprocess.run([ABC, '-q', f'read_verilog {part_v}; strash; {seq}; write_verilog {out_v}'])
-   ```
+**Output:** one optimized `.v` per input partition. Trivial partitions (below `--min-nodes`) are copied unchanged. Partitions with no monitor (training failed) are also copied unchanged.
 
-3. **Reassemble** — generate top wrapper, flatten to a single combinational netlist, run `abc_netlist` to CEC-verify and re-insert the original pipeline registers.
-   ```bash
-   python3 src/gen_top.py -dir src_opt -module_name netlist
-   yosys -p "read_verilog src_opt/p0.v ... src_opt/netlist.v; \
-             hierarchy -top netlist; flatten; techmap; opt -purge; \
-             write_verilog -noattr netlist_rl.v"
-   yosys -m abc_netlist/abc_netlist.so -p \
-     "read_verilog -nolatches dep.v top.v; \
-      hierarchy -check -top $TOP; flatten; proc; opt -purge; memory; \
-      opt -purge; fsm; opt -purge; techmap; opt -purge; \
-      abc_netlist -netlist netlist_rl.v -script '+cec netlist_rl.v; quit'; \
-      opt -purge; write_verilog -noattr src_opt/output.v"
-   ```
-   Output: `src_opt/output.v` — sequential, CEC-verified, same interface as original RTL.
+**Example — ifft8, 24 partitions, 5000 steps:**
+```
+Partition                                 Before   After  Saved%
+------------------------------------------------------------
+network_5_part_0_noop                        677      74   89.1%
+network_6_part_4_noop                        671      63   90.6%
+network_6_part_8_noop                        672      66   90.2%
+network_0                                    593     360   39.3%
+...
+TOTAL                                      11098    6023   45.7%
+```
 
-4. **Verify** — compile with original RTL and compare outputs.
-
-**Important notes:**
-- `N_WORKERS = 4` is a safe default; each training job spawns multiple ABC subprocesses. Using `mp.Pool(len(parts))` will flood the machine.
-- Use stdlib `csv` (not pandas) to read monitor CSVs — pandas is typically not in system Python.
-- The flat `netlist_rl.v` (before `abc_netlist`) is what to pass to abc `strash` for AND-node counting; `output.v` is sequential and will report 0 combinational nodes.
-- The `rl_work/` directory is resume-safe: re-running the script skips partitions whose `0.monitor.csv` already exists.
-- Run the testbench with `cwd` set to the work directory so `$readmemh` bare filenames resolve.
+**Reassembly** (optional — if you need a single flat netlist):
+```bash
+python3 src/gen_top.py -dir path/to/optimized/ -module_name netlist
+yosys -Q -T -p "read_verilog path/to/optimized/*.v; \
+  hierarchy -top netlist; flatten; techmap; opt -purge; \
+  write_verilog -noattr flat_netlist.v"
+```
 
 **Observed results on ifft8 (8-point IFFT, 24 partitions, 5000 steps):**
 - AND-node reduction: 45.7% (11,098 → 6,005 nodes)
