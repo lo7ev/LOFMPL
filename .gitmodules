@@ -1,6 +1,6 @@
 [submodule "rl_logic_synthesis"]
 	path = rl_logic_synthesis
-	url = https://github.com/phyzhenli/rl_logic_synthesis.git
+	url = https://github.com/lo7ev/rl_logic_synthesis.git
 [submodule "abc_p"]
 	path = abc_p
 	url = https://github.com/kxzhu0505/abc_p.git
@@ -16,3 +16,6 @@
 [submodule "yosys"]
 	path = yosys
 	url = https://github.com/YosysHQ/yosys.git
+[submodule "hdl-benchmarks"]
+	path = verilogs/hdl-benchmarks
+	url = https://github.com/ispras/hdl-benchmarks.git
