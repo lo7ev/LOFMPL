@@ -21,7 +21,9 @@ lsoracle:
 	cd LSOracle_p/build && cmake .. \
 	    -DCMAKE_BUILD_TYPE=RELEASE \
 	    -DENABLE_ABC=ON \
-	    -DENABLE_OPENSTA=OFF
+	    -DENABLE_OPENSTA=OFF \
+	    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+	    -DCMAKE_CXX_FLAGS="-Wno-template-body"
 	$(MAKE) -C LSOracle_p/build -j$(NPROC)
 
 ## 3. Yosys plugin (abc_netlist.so)
