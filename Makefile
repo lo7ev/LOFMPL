@@ -36,6 +36,11 @@ abc_netlist/abc_netlist.so: abc_netlist/abc_netlist.cc
 ## 4. ABC Python interface (requires rl_zoo3 conda env)
 abc_py:
 	@echo "Building abc_py (requires rl_zoo3 micromamba env)..."
+	@if [ ! -d rl_logic_synthesis/abc_py/abc ]; then \
+		echo "Cloning ABC into rl_logic_synthesis/abc_py/abc ..."; \
+		git clone https://github.com/berkeley-abc/abc.git rl_logic_synthesis/abc_py/abc; \
+		$(MAKE) -C rl_logic_synthesis/abc_py/abc -j$(NPROC) ABC_USE_NO_READLINE=1 ABC_USE_STDINT_H=1 ABC_USE_PIC=1 libabc.a; \
+	fi
 	$(MAKE) -C rl_logic_synthesis/abc_py MAMBA_ENV=$(MAMBA_ENV)
 
 clean:
