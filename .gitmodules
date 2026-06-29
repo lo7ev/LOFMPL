@@ -3,7 +3,7 @@
 	url = https://github.com/lo7ev/rl_logic_synthesis.git
 [submodule "abc_p"]
 	path = abc_p
-	url = https://github.com/kxzhu0505/abc_p.git
+	url = git@github.com:lo7ev/abc_p.git
 [submodule "LSOracle_p"]
 	path = LSOracle_p
 	url = https://github.com/kxzhu0505/LSOracle_p.git
